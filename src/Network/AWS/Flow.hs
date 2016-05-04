@@ -4,7 +4,9 @@ module Network.AWS.Flow
   ( register
   , execute
   , act
+  , act2
   , decide
+  , decide2
   , flowEnv
   , runFlowT
   , runDecide
@@ -110,6 +112,9 @@ act queue action =
       unless (null artifacts) $ logInfo' $ sformat ("event=artifacts uid=" % stext) uid
       respondActivityTaskCompletedAction token output
 
+act2 :: MonadFlow m => Queue -> (Uid -> Metadata -> [Blob] -> m (Metadata, [Artifact])) -> m ()
+act2 _queue _action = undefined
+
 decide :: MonadFlow m => Plan -> m ()
 decide plan@Plan{..} =
   handle serializeError $ do
@@ -119,6 +124,9 @@ decide plan@Plan{..} =
     logger <- asks feLogger
     decisions <- runDecide logger plan events select
     respondDecisionTaskCompletedAction token decisions
+
+decide2 :: MonadFlow m => Queue -> m ()
+decide2 _queue = undefined
 
 -- Decisions
 

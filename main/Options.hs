@@ -6,6 +6,7 @@ module Options
   , queue
   , containerless
   , gzip
+  , cmd
   ) where
 
 import BasicPrelude
@@ -64,3 +65,9 @@ gzip =
     $  long "gzip"
     <> help "GZIP contents of artifacts"
 
+cmd :: Parser String
+cmd =
+  strOption
+    $  long    "cmd"
+    <> metavar "COMMAND"
+    <> help    "Command to run"
