@@ -21,6 +21,7 @@ source-repository head
 
 library
   exposed-modules:     Network.AWS.Flow
+                     , Network.AWS.Wolf
   other-modules:       Network.AWS.Flow.Env
                      , Network.AWS.Flow.Logger
                      , Network.AWS.Flow.Prelude
@@ -28,6 +29,23 @@ library
                      , Network.AWS.Flow.SWF
                      , Network.AWS.Flow.Types
                      , Network.AWS.Flow.Uid
+                     , Network.AWS.Wolf.Act
+                     , Network.AWS.Wolf.Aeson
+                     , Network.AWS.Wolf.Constant
+                     , Network.AWS.Wolf.Ctx
+                     , Network.AWS.Wolf.Decide
+                     , Network.AWS.Wolf.File
+                     , Network.AWS.Wolf.Lens
+                     , Network.AWS.Wolf.Prelude
+                     , Network.AWS.Wolf.S3
+                     , Network.AWS.Wolf.SWF
+                     , Network.AWS.Wolf.Trace
+                     , Network.AWS.Wolf.Types
+                     , Network.AWS.Wolf.Types.Alias
+                     , Network.AWS.Wolf.Types.Ctx
+                     , Network.AWS.Wolf.Types.Plan
+                     , Network.AWS.Wolf.Types.Product
+                     , Network.AWS.Wolf.Types.Trans
                      , Paths_wolf
   default-language:    Haskell2010
   hs-source-dirs:      src
@@ -41,23 +59,31 @@ library
                      , basic-prelude
                      , bytestring
                      , conduit
+                     , conduit-combinators
                      , conduit-extra
+                     , directory
                      , exceptions
                      , fast-logger
+                     , filemanip
                      , formatting
                      , http-conduit
                      , http-types
                      , lens
+                     , lifted-async
+                     , lifted-base
                      , monad-control
                      , monad-logger
                      , mtl
                      , mtl-compat
                      , optparse-applicative
+                     , process
                      , regex-applicative
                      , regex-compat
                      , resourcet
                      , safe
+                     , template-haskell
                      , text
+                     , text-manipulate
                      , time
                      , transformers
                      , transformers-base
@@ -185,3 +211,31 @@ executable wolf-act2
   default-extensions:  OverloadedStrings
                        RecordWildCards
                        NoImplicitPrelude
+
+executable wolf-actor
+  hs-source-dirs:      main
+  main-is:             actor.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
+  build-depends:       base
+                     , wolf
+                     , optparse-generic
+  default-language:    Haskell2010
+
+executable wolf-decider
+  hs-source-dirs:      main
+  main-is:             decider.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
+  build-depends:       base
+                     , wolf
+                     , optparse-generic
+  default-language:    Haskell2010
+
+executable shake-wolf
+  main-is:             Shakefile.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
+  build-depends:       base >= 4.7 && < 5
+                     , basic-prelude
+                     , directory
+                     , shake
+  default-language:    Haskell2010
+
