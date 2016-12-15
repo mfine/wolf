@@ -16,6 +16,7 @@ import Control.Concurrent.Async.Lifted
 import Control.Lens                    as Exports hiding (uncons, (.=), (<.>))
 import Control.Monad.Catch
 import Control.Monad.Trans.Control
+import Control.Monad.Trans.Resource
 
 -- | Throw userError on either error.
 --
@@ -30,5 +31,6 @@ runConcurrent = void . runConcurrently . sequenceA . map Concurrently
 type MonadMain m =
   ( MonadBaseControl IO m
   , MonadIO m
+  , MonadResource m
   , MonadCatch m
   )
