@@ -15,7 +15,7 @@ import Network.AWS.Wolf.Types
 run :: MonadConf c m => Plan -> m ()
 run plan = do
   (token, events) <- pollDecision (plan ^. pStart ^. ptQueue)
-  maybe_ token $ \token' -> do
+  maybe_ token $ \token' ->
     undefined
 
 decide :: MonadMain m => FilePath -> FilePath -> m ()

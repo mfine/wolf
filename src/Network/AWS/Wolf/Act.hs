@@ -9,8 +9,8 @@ module Network.AWS.Wolf.Act
 import Network.AWS.Wolf.Ctx
 import Network.AWS.Wolf.File
 import Network.AWS.Wolf.Prelude
-import Network.AWS.Wolf.SWF
 import Network.AWS.Wolf.S3
+import Network.AWS.Wolf.SWF
 import Network.AWS.Wolf.Types
 
 run :: MonadConf c m => Text -> Text -> Bool -> m ()
