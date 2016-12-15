@@ -6,8 +6,10 @@
 --
 module Network.AWS.Wolf.Prelude
   ( module Exports
+  , maybe_
   , eitherThrowIO
   , runConcurrent
+  , (<\>)
   , MonadMain
   ) where
 
@@ -18,6 +20,11 @@ import Control.Monad.Catch
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Resource
 
+-- | Maybe that returns () if Nothing
+--
+maybe_ :: Monad m => Maybe a -> (a -> m ()) -> m ()
+maybe_ = flip $ maybe $ return ()
+
 -- | Throw userError on either error.
 --
 eitherThrowIO :: MonadIO m => Either String a -> m a
@@ -27,6 +34,11 @@ eitherThrowIO = either (liftIO . throwIO . userError) return
 --
 runConcurrent :: MonadBaseControl IO m => [m a] -> m ()
 runConcurrent = void . runConcurrently . sequenceA . map Concurrently
+
+-- | </> for Text.
+--
+(<\>) :: Text -> Text -> Text
+(<\>) = (<>) . (<> "/")
 
 type MonadMain m =
   ( MonadBaseControl IO m

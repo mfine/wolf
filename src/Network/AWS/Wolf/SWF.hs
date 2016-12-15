@@ -20,13 +20,14 @@ runAWS action = do
   e <- newEnv Oregon $ FromEnv mempty mempty mempty
   runAWST e action
 
-pollActivity :: MonadConf c m => Text -> m (Maybe Text, Maybe Text)
+pollActivity :: MonadConf c m => Text -> m (Maybe Text, Maybe Text, Maybe Text)
 pollActivity queue = do
   conf <- view cConf
   runAWS $ do
     r <- send (pollForActivityTask (conf ^. cDomain) (taskList queue))
     return
       ( r ^. pfatrsTaskToken
+      , view weWorkflowId <$> r ^. pfatrsWorkflowExecution
       , r ^. pfatrsInput
       )
 
@@ -39,4 +40,3 @@ pollDecision queue = do
       ( join $ listToMaybe $ map (view pfdtrsTaskToken) rs
       , reverse $ concatMap (view pfdtrsEvents) rs
       )
-

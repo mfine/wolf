@@ -58,6 +58,7 @@ library
                      , basic-prelude
                      , bytestring
                      , conduit
+                     , conduit-combinators
                      , conduit-extra
                      , exceptions
                      , fast-logger
