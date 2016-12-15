@@ -7,7 +7,6 @@ module Network.AWS.Wolf.SWF
   , pollDecision
   ) where
 
-import Control.Monad.Catch
 import Control.Monad.Trans.AWS
 import Data.Conduit
 import Data.Conduit.List        hiding (concatMap, map)
@@ -15,28 +14,27 @@ import Network.AWS.SWF
 import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.Types
 
-runAWS :: (MonadIO m, MonadCatch m) => AWST m b -> m b
-runAWS action = do
-  e <- newEnv Oregon $ FromEnv mempty mempty mempty
-  runAWST e action
+runSWF :: MonadConf c m => (Text -> AWST m b) -> m b
+runSWF action = do
+  env <- newEnv Oregon $ FromEnv mempty mempty mempty
+  conf <- view cConf
+  runAWST env $ action (conf ^. cDomain)
 
 pollActivity :: MonadConf c m => Text -> m (Maybe Text, Maybe Text, Maybe Text)
-pollActivity queue = do
-  conf <- view cConf
-  runAWS $ do
-    r <- send (pollForActivityTask (conf ^. cDomain) (taskList queue))
+pollActivity queue =
+  runSWF $ \d -> do
+    pfatrs <- send (pollForActivityTask d (taskList queue))
     return
-      ( r ^. pfatrsTaskToken
-      , view weWorkflowId <$> r ^. pfatrsWorkflowExecution
-      , r ^. pfatrsInput
+      ( pfatrs ^. pfatrsTaskToken
+      , view weWorkflowId <$> pfatrs ^. pfatrsWorkflowExecution
+      , pfatrs ^. pfatrsInput
       )
 
 pollDecision :: MonadConf c m => Text -> m (Maybe Text, [HistoryEvent])
-pollDecision queue = do
-  conf <- view cConf
-  runAWS $ do
-    rs <- paginate (pollForDecisionTask (conf ^. cDomain) (taskList queue)) $$ consume
+pollDecision queue =
+  runSWF $ \d -> do
+    pfdtrs <- paginate (pollForDecisionTask d (taskList queue)) $$ consume
     return
-      ( join $ listToMaybe $ map (view pfdtrsTaskToken) rs
-      , reverse $ concatMap (view pfdtrsEvents) rs
+      ( join $ listToMaybe $ map (view pfdtrsTaskToken) pfdtrs
+      , reverse $ concatMap (view pfdtrsEvents) pfdtrs
       )
