@@ -17,9 +17,10 @@ run :: MonadConf c m => Text -> Text -> Bool -> m ()
 run queue _command _gzip = do
   (token, uid, input) <- pollActivity queue
   maybe_ token $ \token' ->
-    maybe_ uid $ \uid' -> do
-      artifacts <- listArtifacts uid'
-      undefined
+    maybe_ uid $ \uid' ->
+      withCurrentWorkDirectory uid' $ \wd -> do
+        artifacts <- listArtifacts uid'
+        undefined
 
 act :: MonadMain m => FilePath -> Text -> Text -> Bool -> m ()
 act cf queue command gzip =

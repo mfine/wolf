@@ -6,7 +6,7 @@
 module Network.AWS.Wolf.File
   ( fromFile
   , toFile
-  , workDirectory
+  , withCurrentWorkDirectory
   ) where
 
 import Control.Monad.Trans.Control
@@ -64,11 +64,25 @@ copyDirectoryRecursive fd td =
           tc = td </> c
       bool (copyDirectoryRecursive fc tc) (copyFile fc tc) <$> doesDirectoryExist fc
 
--- | Setup a work a temporary directory with copy of current directory.
+-- | Setup a temporary work directory.
 --
-workDirectory :: (MonadBaseControl IO m, MonadIO m) => Text -> (FilePath -> m a) -> m a
-workDirectory uid action =
-  bracket (getWorkDirectory uid) (liftIO . removeDirectoryRecursive) $ \wd ->
-    bracket (liftIO getCurrentDirectory) (liftIO . setCurrentDirectory) $ \cd -> do
+withWorkDirectory :: (MonadBaseControl IO m, MonadIO m) => Text -> (FilePath -> m a) -> m a
+withWorkDirectory uid =
+  bracket (getWorkDirectory uid) (liftIO . removeDirectoryRecursive)
+
+-- | Change to directory and then return to current directory.
+--
+withCurrentDirectory :: (MonadBaseControl IO m, MonadIO m) => FilePath -> (FilePath -> m a) -> m a
+withCurrentDirectory wd action =
+  bracket (liftIO getCurrentDirectory) (liftIO . setCurrentDirectory) $ \cd -> do
+    liftIO $ setCurrentDirectory wd
+    action cd
+
+-- | Setup a temporary work directory and copy current directory files to it.
+--
+withCurrentWorkDirectory :: (MonadBaseControl IO m, MonadIO m) => Text -> (FilePath -> m a) -> m a
+withCurrentWorkDirectory uid action =
+  withWorkDirectory uid $ \wd ->
+    withCurrentDirectory wd $ \cd -> do
       copyDirectoryRecursive cd wd
       action wd

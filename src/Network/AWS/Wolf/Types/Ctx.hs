@@ -29,7 +29,8 @@ data Ctx = Ctx
 $(makeClassy ''Ctx)
 
 type MonadCtx c m =
-  ( MonadIO m
+  ( MonadBaseControl IO m
+  , MonadIO m
   , MonadReader c m
   , MonadLogger m
   , MonadCatch m
