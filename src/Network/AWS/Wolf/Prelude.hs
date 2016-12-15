@@ -10,6 +10,7 @@ module Network.AWS.Wolf.Prelude
   , eitherThrowIO
   , runConcurrent
   , (<\>)
+  , MonadBaseControlIO
   , MonadMain
   ) where
 
@@ -40,9 +41,13 @@ runConcurrent = void . runConcurrently . sequenceA . map Concurrently
 (<\>) :: Text -> Text -> Text
 (<\>) = (<>) . (<> "/")
 
-type MonadMain m =
+type MonadBaseControlIO m =
   ( MonadBaseControl IO m
   , MonadIO m
+  )
+
+type MonadMain m =
+  ( MonadBaseControlIO m
   , MonadResource m
   , MonadCatch m
   )

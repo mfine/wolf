@@ -9,12 +9,12 @@ module Network.AWS.Wolf.File
   , withCurrentWorkDirectory
   ) where
 
-import Control.Monad.Trans.Control
-import Data.Aeson                  as A
-import Data.ByteString             as BS hiding (filter, notElem)
-import Data.ByteString.Lazy        as LBS hiding (filter, notElem)
+
+import Data.Aeson               as A
+import Data.ByteString          as BS hiding (filter, notElem)
+import Data.ByteString.Lazy     as LBS hiding (filter, notElem)
 import Data.Time
-import Data.Yaml                   as Y
+import Data.Yaml                as Y
 import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.Types
 import System.Directory
@@ -66,13 +66,13 @@ copyDirectoryRecursive fd td =
 
 -- | Setup a temporary work directory.
 --
-withWorkDirectory :: (MonadBaseControl IO m, MonadIO m) => Text -> (FilePath -> m a) -> m a
+withWorkDirectory :: MonadBaseControlIO m => Text -> (FilePath -> m a) -> m a
 withWorkDirectory uid =
   bracket (getWorkDirectory uid) (liftIO . removeDirectoryRecursive)
 
 -- | Change to directory and then return to current directory.
 --
-withCurrentDirectory :: (MonadBaseControl IO m, MonadIO m) => FilePath -> (FilePath -> m a) -> m a
+withCurrentDirectory :: MonadBaseControlIO m => FilePath -> (FilePath -> m a) -> m a
 withCurrentDirectory wd action =
   bracket (liftIO getCurrentDirectory) (liftIO . setCurrentDirectory) $ \cd -> do
     liftIO $ setCurrentDirectory wd
@@ -80,7 +80,7 @@ withCurrentDirectory wd action =
 
 -- | Setup a temporary work directory and copy current directory files to it.
 --
-withCurrentWorkDirectory :: (MonadBaseControl IO m, MonadIO m) => Text -> (FilePath -> m a) -> m a
+withCurrentWorkDirectory :: MonadBaseControlIO m => Text -> (FilePath -> m a) -> m a
 withCurrentWorkDirectory uid action =
   withWorkDirectory uid $ \wd ->
     withCurrentDirectory wd $ \cd -> do
