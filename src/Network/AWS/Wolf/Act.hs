@@ -19,7 +19,14 @@ run queue _command _gzip = do
   maybe_ token $ \token' ->
     maybe_ uid $ \uid' ->
       withCurrentWorkDirectory uid' $ \wd -> do
-        artifacts <- listArtifacts uid'
+        dd <- dataDirectory wd
+        toFile EncodeAeson (dd </> "input.json") input
+        ks  <- listArtifacts uid'
+        sd  <- storeDirectory wd
+        isd <- inputDirectory sd
+        forM_ ks $ \k ->
+          getArtifact uid' k $ isd </> textToString k
+        osd <- outputDirectory sd
         undefined
 
 act :: MonadMain m => FilePath -> Text -> Text -> Bool -> m ()

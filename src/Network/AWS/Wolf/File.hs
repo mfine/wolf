@@ -4,7 +4,11 @@
 -- | Files, directories, and encoding / decoding file functions.
 --
 module Network.AWS.Wolf.File
-  ( fromFile
+  ( dataDirectory
+  , storeDirectory
+  , inputDirectory
+  , outputDirectory
+  , fromFile
   , toFile
   , withCurrentWorkDirectory
   ) where
@@ -19,6 +23,38 @@ import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.Types
 import System.Directory
 import System.IO
+
+-- | Determine path to data directory and create it.
+--
+dataDirectory :: MonadIO m => FilePath -> m FilePath
+dataDirectory dir = do
+  let dir' = dir </> "data"
+  liftIO $ createDirectoryIfMissing True dir'
+  return dir'
+
+-- | Determine path to store directory and create it.
+--
+storeDirectory :: MonadIO m => FilePath -> m FilePath
+storeDirectory dir = do
+  let dir' = dir </> "store"
+  liftIO $ createDirectoryIfMissing True dir'
+  return dir'
+
+-- | Determine path to store input directory and create it.
+--
+inputDirectory :: MonadIO m => FilePath -> m FilePath
+inputDirectory dir = do
+  let dir' = dir </> "input"
+  liftIO $ createDirectoryIfMissing True dir'
+  return dir'
+
+-- | Determine path to store output directory and create it.
+--
+outputDirectory :: MonadIO m => FilePath -> m FilePath
+outputDirectory dir = do
+  let dir' = dir </> "output"
+  liftIO $ createDirectoryIfMissing True dir'
+  return dir'
 
 -- | Read file and decode it depending on encoding type.
 --
@@ -57,7 +93,7 @@ getWorkDirectory uid =
 copyDirectoryRecursive :: MonadIO m => FilePath -> FilePath -> m ()
 copyDirectoryRecursive fd td =
   liftIO $ do
-    createDirectoryIfMissing False td
+    createDirectoryIfMissing True td
     cs <- filter (`notElem` [".", ".."]) <$> getDirectoryContents fd
     forM_ cs $ \c -> do
       let fc = fd </> c
