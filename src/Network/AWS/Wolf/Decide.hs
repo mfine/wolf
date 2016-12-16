@@ -14,15 +14,14 @@ import Network.AWS.Wolf.Types
 
 run :: MonadConf c m => Plan -> m ()
 run plan = do
-  (token, events) <- pollDecision (plan ^. pStart ^. ptQueue)
-  maybe_ token $ \token' ->
-    undefined
+  (token, _events) <- pollDecision (plan ^. pStart ^. ptQueue)
+  maybe_ token $ const undefined
 
 decide :: MonadMain m => FilePath -> FilePath -> m ()
 decide cf pf =
   runCtx $ do
-    conf <- fromFile EncodeYaml cf
+    conf <- fromYaml cf
     runConfCtx conf $ do
-      plans <- fromFile EncodeYaml pf
+      plans <- fromYaml pf
       runConcurrent $
         run <$> plans

@@ -9,6 +9,7 @@ module Network.AWS.Wolf.Prelude
   , maybe_
   , eitherThrowIO
   , runConcurrent
+  , textFromString
   , (<\>)
   , MonadBaseControlIO
   , MonadMain
@@ -20,6 +21,7 @@ import Control.Lens                    as Exports hiding (uncons, (.=), (<.>))
 import Control.Monad.Catch
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Resource
+import Data.Text                       hiding (map)
 
 -- | Maybe that returns () if Nothing
 --
@@ -35,6 +37,11 @@ eitherThrowIO = either (liftIO . throwIO . userError) return
 --
 runConcurrent :: MonadBaseControl IO m => [m a] -> m ()
 runConcurrent = void . runConcurrently . sequenceA . map Concurrently
+
+-- | Reverse of textToString
+--
+textFromString :: String -> Text
+textFromString = pack
 
 -- | </> for Text.
 --

@@ -39,8 +39,8 @@ getArtifact uid key file =
     gors <- send $ getObject (BucketName b) (ObjectKey (p <\> key))
     sinkBody (gors ^. gorsBody) (sinkFile file)
 
-putArtifact :: MonadConf c m => Text -> Text -> FilePath -> m ()
-putArtifact uid key file = do
+putArtifact :: MonadConf c m => Text -> FilePath -> Text -> m ()
+putArtifact uid file key = do
   (sha, len) <- sourceFile file $$ getZipSink $ (,) <$> ZipSink sinkSHA256 <*> ZipSink lengthE
   runS3 uid $ \b p ->
     void $ send $ putObject (BucketName b) (ObjectKey (p <\> key)) $

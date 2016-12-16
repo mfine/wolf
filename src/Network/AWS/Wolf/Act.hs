@@ -12,26 +12,32 @@ import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.S3
 import Network.AWS.Wolf.SWF
 import Network.AWS.Wolf.Types
+import System.Process
 
-run :: MonadConf c m => Text -> Text -> Bool -> m ()
-run queue _command _gzip = do
+run :: MonadConf c m => Text -> Text -> m ()
+run queue command = do
   (token, uid, input) <- pollActivity queue
   maybe_ token $ \token' ->
     maybe_ uid $ \uid' ->
       withCurrentWorkDirectory uid' $ \wd -> do
         dd <- dataDirectory wd
-        toFile EncodeAeson (dd </> "input.json") input
+        writeText (dd </> "input.json") input
         ks  <- listArtifacts uid'
         sd  <- storeDirectory wd
         isd <- inputDirectory sd
         forM_ ks $ \k ->
           getArtifact uid' k $ isd </> textToString k
+        liftIO $ callCommand $ textToString command
         osd <- outputDirectory sd
-        undefined
+        fs  <- findRegularFiles osd
+        forM_ fs $ \f ->
+          traverse (putArtifact uid' f) $ textFromString <$> stripPrefix osd f
+        output <- readText (dd </> "output.json")
+        completeActivity token' output
 
-act :: MonadMain m => FilePath -> Text -> Text -> Bool -> m ()
-act cf queue command gzip =
+act :: MonadMain m => FilePath -> Text -> Text -> m ()
+act cf queue command =
   runCtx $ do
-    conf <- fromFile EncodeYaml cf
+    conf <- fromYaml cf
     runConfCtx conf $
-      run queue command gzip
+      run queue command

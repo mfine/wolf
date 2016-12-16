@@ -4,25 +4,32 @@
 -- | Files, directories, and encoding / decoding file functions.
 --
 module Network.AWS.Wolf.File
-  ( dataDirectory
+  ( findRegularFiles
+  , dataDirectory
   , storeDirectory
   , inputDirectory
   , outputDirectory
-  , fromFile
-  , toFile
+  , writeText
+  , readText
+  , fromYaml
   , withCurrentWorkDirectory
   ) where
 
 
 import Data.Aeson               as A
-import Data.ByteString          as BS hiding (filter, notElem)
-import Data.ByteString.Lazy     as LBS hiding (filter, notElem)
+import Data.ByteString          as BS hiding (filter, find, notElem, readFile, writeFile)
 import Data.Time
 import Data.Yaml                as Y
-import Network.AWS.Wolf.Prelude
-import Network.AWS.Wolf.Types
+import Network.AWS.Wolf.Prelude hiding (find)
 import System.Directory
-import System.IO
+import System.FilePath.Find
+import System.IO                hiding (readFile, writeFile)
+
+-- | Recursively find all files under a directory.
+--
+findRegularFiles :: MonadIO m => FilePath -> m [FilePath]
+findRegularFiles =
+  liftIO . find always (fileType ==? RegularFile)
 
 -- | Determine path to data directory and create it.
 --
@@ -56,28 +63,28 @@ outputDirectory dir = do
   liftIO $ createDirectoryIfMissing True dir'
   return dir'
 
--- | Read file and decode it depending on encoding type.
+-- | Maybe write text to a file.
 --
-fromFile :: (MonadIO m, FromJSON a) => EncodeType -> FilePath -> m a
-fromFile et path =
+writeText :: MonadIO m => FilePath -> Maybe Text -> m ()
+writeText file contents =
+  liftIO $ void $ traverse (writeFile file) contents
+
+-- | Maybe read text from a file.
+--
+readText :: MonadIO m => FilePath -> m (Maybe Text)
+readText file =
+ liftIO $ do
+   b <- doesFileExist file
+   if not b then return mempty else
+     return <$> readFile file
+
+-- | Read file and decode it from YAML.
+--
+fromYaml :: (MonadIO m, FromJSON a) => FilePath -> m a
+fromYaml path =
   liftIO $ withFile path ReadMode $ \h -> do
     body <- BS.hGetContents h
-    case et of
-      EncodeAeson ->
-        eitherThrowIO $ eitherDecode $ fromStrict body
-      EncodeYaml ->
-        eitherThrowIO $ decodeEither body
-
--- | Encode it and write to file depending on encoding type.
---
-toFile :: (MonadIO m, ToJSON a) => EncodeType -> FilePath -> a -> m ()
-toFile et path item =
-  liftIO $ withFile path WriteMode $ \h ->
-    case et of
-      EncodeAeson ->
-        BS.hPut h $ toStrict $ A.encode item
-      EncodeYaml ->
-        BS.hPut h $ Y.encode item
+    eitherThrowIO $ decodeEither body
 
 -- | Get a temporary timestamped work directory.
 --
@@ -122,3 +129,4 @@ withCurrentWorkDirectory uid action =
     withCurrentDirectory wd $ \cd -> do
       copyDirectoryRecursive cd wd
       action wd
+

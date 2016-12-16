@@ -5,6 +5,7 @@
 module Network.AWS.Wolf.SWF
   ( pollActivity
   , pollDecision
+  , completeActivity
   ) where
 
 import Control.Monad.Trans.AWS
@@ -38,3 +39,8 @@ pollDecision queue =
       ( join $ listToMaybe $ map (view pfdtrsTaskToken) pfdtrs
       , reverse $ concatMap (view pfdtrsEvents) pfdtrs
       )
+
+completeActivity :: MonadConf c m => Text -> Maybe Text -> m ()
+completeActivity token output =
+  runSWF $ const $
+    void $ send $ set ratcResult output $ respondActivityTaskCompleted token
