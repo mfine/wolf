@@ -15,20 +15,22 @@ import Network.AWS.SWF
 import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.Types
 
-pollActivity :: MonadAmazon c m => Text -> m (Maybe Text, Maybe Text, Maybe Text)
-pollActivity queue = do
+pollActivity :: MonadAmazonWork c m => m (Maybe Text, Maybe Text, Maybe Text)
+pollActivity = do
   d      <- view cDomain <$> view ccConf
-  pfatrs <- send (pollForActivityTask d (taskList queue))
+  tl     <- taskList <$> view awcQueue
+  pfatrs <- send (pollForActivityTask d tl)
   return
     ( pfatrs ^. pfatrsTaskToken
     , view weWorkflowId <$> pfatrs ^. pfatrsWorkflowExecution
     , pfatrs ^. pfatrsInput
     )
 
-pollDecision :: MonadAmazon c m => Text -> m (Maybe Text, [HistoryEvent])
-pollDecision queue = do
+pollDecision :: MonadAmazonWork c m => m (Maybe Text, [HistoryEvent])
+pollDecision = do
   d      <- view cDomain <$> view ccConf
-  pfdtrs <- paginate (pollForDecisionTask d (taskList queue)) $$ consume
+  tl     <- taskList <$> view awcQueue
+  pfdtrs <- paginate (pollForDecisionTask d tl) $$ consume
   return
     ( join $ listToMaybe $ map (view pfdtrsTaskToken) pfdtrs
     , reverse $ concatMap (view pfdtrsEvents) pfdtrs

@@ -31,7 +31,6 @@ library
                      , Network.AWS.Flow.Uid
                      , Network.AWS.Wolf.Act
                      , Network.AWS.Wolf.Aeson
-                     , Network.AWS.Wolf.Constant
                      , Network.AWS.Wolf.Ctx
                      , Network.AWS.Wolf.Decide
                      , Network.AWS.Wolf.File

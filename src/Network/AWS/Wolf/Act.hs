@@ -32,29 +32,35 @@ upload dir = do
     traceInfo "put-artifact" [ "key" .= k ]
     traverse (putArtifact f) k
 
+run :: MonadCtx c m => String -> m ()
+run command =
+  preCtx [ "command" .= command ] $ do
+    traceInfo "start" mempty
+    liftIO $ callCommand command
+    traceInfo "finish" mempty
+
 act :: MonadConf c m => Text -> String -> m ()
-act queue command = do
-  traceInfo "act" [ "queue" .= queue, "command" .= command ]
-  runAmazonCtx $ do
-    (token, uid, input) <- pollActivity queue
-    maybe_ token $ \token' ->
-      maybe_ uid $ \uid' ->
-        withCurrentWorkDirectory uid' $ \wd ->
-          runAmazonStoreCtx uid' $ do
-            traceInfo "start" [ "input" .= input, "dir" .= wd ]
-            dd  <- dataDirectory wd
-            sd  <- storeDirectory wd
-            isd <- inputDirectory sd
-            osd <- outputDirectory sd
-            writeText (dd </> "input.json") input
-            download isd
-            traceInfo "start-command" mempty
-            liftIO $ callCommand command
-            traceInfo "finish-command" mempty
-            upload osd
-            output <- readText (dd </> "output.json")
-            completeActivity token' output
-            traceInfo "finish" [ "output" .= output ]
+act queue command =
+  runAmazonCtx $
+    runAmazonWorkCtx queue $ do
+      traceInfo "act" mempty
+      (token, uid, input) <- pollActivity
+      maybe_ token $ \token' ->
+        maybe_ uid $ \uid' ->
+          withCurrentWorkDirectory uid' $ \wd ->
+            runAmazonStoreCtx uid' $ do
+              traceInfo "start" [ "input" .= input, "dir" .= wd ]
+              dd  <- dataDirectory wd
+              sd  <- storeDirectory wd
+              isd <- inputDirectory sd
+              osd <- outputDirectory sd
+              writeText (dd </> "input.json") input
+              download isd
+              run command
+              upload osd
+              output <- readText (dd </> "output.json")
+              completeActivity token' output
+              traceInfo "finish" [ "output" .= output ]
 
 actMain :: MonadMain m => FilePath -> Text -> String -> m ()
 actMain cf queue command =

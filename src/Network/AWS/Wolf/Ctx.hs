@@ -10,13 +10,14 @@ module Network.AWS.Wolf.Ctx
   , preAmazonCtx
   , runAmazonStoreCtx
   , preAmazonStoreCtx
+  , runAmazonWorkCtx
+  , preAmazonWorkCtx
   ) where
 
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Monad.Trans.AWS
 import Data.Aeson
-import Network.AWS.Wolf.Constant
 import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.Trace
 import Network.AWS.Wolf.Types
@@ -65,7 +66,7 @@ preConfCtx preamble action = do
 runAmazonCtx :: MonadConf c m => TransT AmazonCtx m a -> m a
 runAmazonCtx action = do
   c <- view confCtx
-  e <- newEnv Oregon $ FromEnv awsAccessKey awsSecretKey mempty
+  e <- newEnv Oregon $ FromEnv "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY" mempty
   runTransT (AmazonCtx c e) action
 
 -- | Update amazon context's preamble.
@@ -89,4 +90,19 @@ runAmazonStoreCtx uid action = do
 preAmazonStoreCtx :: MonadAmazonStore c m => Pairs -> TransT AmazonStoreCtx m a -> m a
 preAmazonStoreCtx preamble action = do
   c <- view amazonStoreCtx <&> cPreamble <>~ preamble
+  runTransT c action
+
+-- | Run amazon work context.
+--
+runAmazonWorkCtx :: MonadAmazon c m => Text -> TransT AmazonWorkCtx m a -> m a
+runAmazonWorkCtx queue action = do
+  let preamble = [ "queue" .= queue ]
+  c <- view amazonCtx <&> cPreamble <>~ preamble
+  runTransT (AmazonWorkCtx c queue) action
+
+-- | Update amazon context's preamble.
+--
+preAmazonWorkCtx :: MonadAmazonWork c m => Pairs -> TransT AmazonWorkCtx m a -> m a
+preAmazonWorkCtx preamble action = do
+  c <- view amazonWorkCtx <&> cPreamble <>~ preamble
   runTransT c action

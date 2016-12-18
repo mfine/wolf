@@ -15,9 +15,10 @@ import Network.AWS.Wolf.Types
 
 decide :: MonadConf c m => Plan -> m ()
 decide plan =
-  runAmazonCtx $ do
-    (token, _events) <- pollDecision (plan ^. pStart ^. ptQueue)
-    maybe_ token $ const undefined
+  runAmazonCtx $
+    runAmazonWorkCtx (plan ^. pStart ^. ptQueue) $ do
+      (token, _events) <- pollDecision
+      maybe_ token $ const undefined
 
 decideMain :: MonadMain m => FilePath -> FilePath -> m ()
 decideMain cf pf =

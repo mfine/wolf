@@ -118,3 +118,33 @@ type MonadAmazonStore c m =
    ( MonadAmazon c m
    , HasAmazonStoreCtx c
    )
+
+-- | AmazonStoreCtx
+--
+-- Amazon work context.
+--
+data AmazonWorkCtx = AmazonWorkCtx
+  { _awcAmazonCtx :: AmazonCtx
+    -- ^ Parent context.
+  , _awcQueue     :: Text
+    -- ^ Workflow queue.
+  }
+
+$(makeClassyConstraints ''AmazonWorkCtx [''HasAmazonCtx])
+
+instance HasAmazonCtx AmazonWorkCtx where
+  amazonCtx = awcAmazonCtx
+
+instance HasConfCtx AmazonWorkCtx where
+   confCtx = amazonCtx . acConfCtx
+
+instance HasCtx AmazonWorkCtx where
+   ctx = confCtx . ccCtx
+
+instance HasEnv AmazonWorkCtx where
+   environment = amazonCtx . acEnv
+
+type MonadAmazonWork c m =
+   ( MonadAmazon c m
+   , HasAmazonWorkCtx c
+   )
