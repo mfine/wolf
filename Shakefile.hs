@@ -9,6 +9,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- TODO git tag
+-- TODO rev tag
+-- TODO stack sdist
+-- TODO stack upload
+
 -- | Shake makefile for project.
 --
 import BasicPrelude

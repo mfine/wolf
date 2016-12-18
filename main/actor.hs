@@ -4,8 +4,8 @@
 
 -- | Run actor.
 --
-import Options.Generic
 import Network.AWS.Wolf
+import Options.Generic
 
 -- | Args
 --
@@ -16,7 +16,7 @@ data Args = Args
     -- ^ Configuration file.
   , queue   :: Text
     -- ^ Queue to listen to act on.
-  , command :: Text
+  , command :: String
     -- ^ Command to run.
   } deriving (Show, Generic)
 
@@ -27,7 +27,7 @@ instance ParseRecord Args
 main :: IO ()
 main = do
   args <- getRecord "Actor"
-  runResourceT $ act
+  runResourceT $ actMain
     (config args)
     (queue args)
     (command args)

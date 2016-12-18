@@ -9,6 +9,7 @@ module Network.AWS.Wolf.Types.Ctx where
 import Control.Monad.Catch
 import Control.Monad.Logger
 import Control.Monad.Reader
+import Control.Monad.Trans.AWS
 import Control.Monad.Trans.Resource
 import Network.AWS.Wolf.Lens
 import Network.AWS.Wolf.Prelude
@@ -42,18 +43,78 @@ type MonadCtx c m =
 -- Configuration context.
 --
 data ConfCtx = ConfCtx
-  { _cCtx  :: Ctx
+  { _ccCtx  :: Ctx
     -- ^ Parent context.
-  , _cConf :: Conf
+  , _ccConf :: Conf
     -- ^ Configuration parameters.
   }
 
 $(makeClassyConstraints ''ConfCtx [''HasCtx])
 
 instance HasCtx ConfCtx where
-  ctx = cCtx
+  ctx = ccCtx
 
 type MonadConf c m =
   ( MonadCtx c m
   , HasConfCtx c
   )
+
+-- | AmazonCtx
+--
+-- Amazon context.
+--
+data AmazonCtx = AmazonCtx
+  { _acConfCtx :: ConfCtx
+    -- ^ Parent context.
+  , _acEnv     :: Env
+    -- ^ Amazon environment.
+  }
+
+$(makeClassyConstraints ''AmazonCtx [''HasConfCtx, ''HasEnv])
+
+instance HasConfCtx AmazonCtx where
+  confCtx = acConfCtx
+
+instance HasCtx AmazonCtx where
+  ctx = confCtx . ccCtx
+
+instance HasEnv AmazonCtx where
+  environment = acEnv
+
+type MonadAmazon c m =
+  ( MonadConf c m
+  , HasAmazonCtx c
+  , AWSConstraint c m
+  )
+
+-- | AmazonStoreCtx
+--
+-- Amazon store context.
+--
+data AmazonStoreCtx = AmazonStoreCtx
+  { _ascAmazonCtx :: AmazonCtx
+    -- ^ Parent context.
+  , _ascUid       :: Text
+    -- ^ Workflow uid.
+  , _ascPrefix    :: Text
+    -- ^ Object prefix.
+  }
+
+$(makeClassyConstraints ''AmazonStoreCtx [''HasAmazonCtx])
+
+instance HasAmazonCtx AmazonStoreCtx where
+  amazonCtx = ascAmazonCtx
+
+instance HasConfCtx AmazonStoreCtx where
+   confCtx = amazonCtx . acConfCtx
+
+instance HasCtx AmazonStoreCtx where
+   ctx = confCtx . ccCtx
+
+instance HasEnv AmazonStoreCtx where
+   environment = amazonCtx . acEnv
+
+type MonadAmazonStore c m =
+   ( MonadAmazon c m
+   , HasAmazonStoreCtx c
+   )

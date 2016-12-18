@@ -17,7 +17,7 @@ module Network.AWS.Wolf.File
 
 
 import Data.Aeson               as A
-import Data.ByteString          as BS hiding (putStrLn, filter, find, notElem, readFile, writeFile)
+import Data.ByteString          as BS hiding (filter, find, notElem, readFile, writeFile)
 import Data.Time
 import Data.Yaml                as Y
 import Network.AWS.Wolf.Prelude hiding (find)
@@ -107,12 +107,8 @@ copyDirectoryRecursive fd td =
     forM_ cs $ \c -> do
       let fc = fd </> c
           tc = td </> c
-      b <- doesDirectoryExist fc
-      if b then do
-        copyDirectoryRecursive fc tc
-      else do
-        copyFile fc tc
---      bool (copyDirectoryRecursive fc tc) (copyFile fc tc) <$> doesDirectoryExist fc
+      e <- doesDirectoryExist fc
+      bool (copyFile fc tc) (copyDirectoryRecursive fc tc) e
 
 -- | Setup a temporary work directory.
 --
@@ -123,7 +119,7 @@ withWorkDirectory uid =
 -- | Change to directory and then return to current directory.
 --
 withCurrentDirectory :: MonadBaseControlIO m => FilePath -> (FilePath -> m a) -> m a
-withCurrentDirectory wd action = do
+withCurrentDirectory wd action =
   bracket (liftIO getCurrentDirectory) (liftIO . setCurrentDirectory) $ \cd -> do
     liftIO $ setCurrentDirectory wd
     action cd

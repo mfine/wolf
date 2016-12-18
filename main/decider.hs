@@ -4,8 +4,8 @@
 
 -- | Run actor.
 --
-import Options.Generic
 import Network.AWS.Wolf
+import Options.Generic
 
 -- | Args
 --
@@ -25,6 +25,6 @@ instance ParseRecord Args
 main :: IO ()
 main = do
   args <- getRecord "Decider"
-  runResourceT $ decide
+  runResourceT $ decideMain
     (config args)
     (plan args)

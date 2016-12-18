@@ -48,8 +48,8 @@ textFromString = pack
 -- | Strip the prefix with a '/' tacked on to the prefix.
 --
 stripPrefix' :: Text -> Text -> Maybe Text
-stripPrefix' prefix path =
-  stripPrefix (prefix <\> mempty) path
+stripPrefix' prefix =
+  stripPrefix (prefix <\> mempty)
 
 -- | </> for Text.
 --
