@@ -8,6 +8,7 @@ module Network.AWS.Wolf.SWF
   , pollDecision
   , completeActivity
   , failActivity
+  , completeDecision
   ) where
 
 import Control.Monad.Trans.AWS
@@ -42,7 +43,7 @@ pollDecision = do
     , reverse $ concatMap (view pfdtrsEvents) pfdtrs
     )
 
--- | Successfull job completion.
+-- | Successful job completion.
 --
 completeActivity :: MonadAmazon c m => Text -> Maybe Text -> m ()
 completeActivity token output =
@@ -53,3 +54,9 @@ completeActivity token output =
 failActivity :: MonadAmazon c m => Text -> m ()
 failActivity token =
   void $ send $ respondActivityTaskFailed token
+
+-- | Successful decision completion.
+--
+completeDecision :: MonadAmazon c m => Text -> [Decision] -> m ()
+completeDecision token decisions =
+  void $ send $ set rdtcDecisions decisions $ respondDecisionTaskCompleted token

@@ -42,7 +42,7 @@ $(deriveJSON spinalOptions ''Control)
 --
 -- Work task.
 --
-data PlanTask = PlanTask
+data Task = Task
   { _ptName    :: Text
     -- ^ Name of task.
   , _ptVersion :: Text
@@ -53,17 +53,17 @@ data PlanTask = PlanTask
     -- ^ Timeout for task.
   } deriving (Show, Eq)
 
-$(makeLenses ''PlanTask)
-$(deriveJSON spinalOptions ''PlanTask)
+$(makeLenses ''Task)
+$(deriveJSON spinalOptions ''Task)
 
 -- | Plan
 --
 -- Group of tasks.
 --
 data Plan = Plan
-  { _pStart :: PlanTask
+  { _pStart :: Task
     -- ^ Flow task.
-  , _pTasks :: [PlanTask]
+  , _pTasks :: [Task]
     -- ^ Worker tasks.
   } deriving (Show, Eq)
 
