@@ -12,7 +12,10 @@ if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     exit 1
 fi
 
-docker-compose run wolf wolf-register -c '/cfg/config.yaml' -p '/cfg/plan.yaml'
-docker-compose run wolf wolf-execute -c '/cfg/config.yaml' -p '/cfg/plan.yaml' -i '/cfg/execute.json'
+stack exec wolf-execute -- -c config.yaml -p plan.yaml -i execute.json
 
-docker-compose up
+stack exec wolf-decide -- -c config.yaml -p plan.yaml &
+
+stack exec wolf-actor -- --config config.yaml --queue hello-queue --command "python hello.py" &
+stack exec wolf-actor -- --config config.yaml --queue world-queue --command "python world.py" &
+wait
