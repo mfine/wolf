@@ -43,13 +43,13 @@ $(deriveJSON spinalOptions ''Control)
 -- Work task.
 --
 data Task = Task
-  { _ptName    :: Text
+  { _tName    :: Text
     -- ^ Name of task.
-  , _ptVersion :: Text
+  , _tVersion :: Text
     -- ^ Version of task.
-  , _ptQueue   :: Text
+  , _tQueue   :: Text
     -- ^ Queue for task.
-  , _ptTimeout :: Text
+  , _tTimeout :: Text
     -- ^ Timeout for task.
   } deriving (Show, Eq)
 

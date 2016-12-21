@@ -9,6 +9,9 @@ module Network.AWS.Wolf.SWF
   , completeActivity
   , failActivity
   , completeDecision
+  , scheduleWork
+  , completeWork
+  , failWork
   ) where
 
 import Control.Monad.Trans.AWS
@@ -39,7 +42,7 @@ pollDecision = do
   tl     <- taskList <$> view awcQueue
   pfdtrs <- paginate (pollForDecisionTask d tl) $$ consume
   return
-    ( join $ listToMaybe $ map (view pfdtrsTaskToken) pfdtrs
+    ( join $ headMay $ map (view pfdtrsTaskToken) pfdtrs
     , reverse $ concatMap (view pfdtrsEvents) pfdtrs
     )
 
@@ -57,6 +60,41 @@ failActivity token =
 
 -- | Successful decision completion.
 --
-completeDecision :: MonadAmazon c m => Text -> [Decision] -> m ()
-completeDecision token decisions =
-  void $ send $ set rdtcDecisions decisions $ respondDecisionTaskCompleted token
+completeDecision :: MonadAmazon c m => Text -> Decision -> m ()
+completeDecision token d =
+  void $ send $ set rdtcDecisions (return d) $ respondDecisionTaskCompleted token
+
+-- | Schedule decision.
+--
+scheduleWork :: Text -> Text -> Text -> Text -> Maybe Text -> Decision
+scheduleWork uid name version queue input =
+  decision ScheduleActivityTask &
+    dScheduleActivityTaskDecisionAttributes .~ return satda
+  where
+    satda =
+      scheduleActivityTaskDecisionAttributes (activityType name version) uid &
+        satdaTaskList .~ return (taskList queue) &
+        satdaInput .~ input
+
+-- | Complete decision.
+--
+completeWork :: Maybe Text -> Decision
+completeWork input =
+  decision CompleteWorkflowExecution &
+    dCompleteWorkflowExecutionDecisionAttributes .~ return cweda
+  where
+    cweda =
+      completeWorkflowExecutionDecisionAttributes &
+        cwedaResult .~ input
+
+-- | Failed decision.
+--
+failWork :: Decision
+failWork =
+  decision FailWorkflowExecution &
+    dFailWorkflowExecutionDecisionAttributes .~ return fweda
+  where
+    fweda =
+      failWorkflowExecutionDecisionAttributes
+
+

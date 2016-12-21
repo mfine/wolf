@@ -56,6 +56,7 @@ library
                      , resourcet
                      , text
                      , time
+                     , uuid
                      , yaml
 
 executable wolf-actor

@@ -10,63 +10,93 @@ module Network.AWS.Wolf.Decide
   ) where
 
 import Data.Aeson
+import Data.UUID
+import Data.UUID.V4
+import Network.AWS.SWF
 import Network.AWS.Wolf.Ctx
 import Network.AWS.Wolf.File
 import Network.AWS.Wolf.Prelude
 import Network.AWS.Wolf.SWF
 import Network.AWS.Wolf.Types
-import           Network.AWS.SWF
 
-findEvent :: [HistoryEvent] -> Integer -> Maybe HistoryEvent
-findEvent hes ei =
-  flip find hes $
-    (== ei) . (view heEventId)
+-- | Successful end of workflow.
+--
+end :: MonadAmazonDecision c m => Maybe Text -> m Decision
+end input = do
+  traceInfo "end" mempty
+  return $ completeWork input
 
-nextEvent :: [HistoryEvent] -> [EventType] -> Maybe HistoryEvent
-nextEvent hes ets =
-  flip find hes $
-    (`elem` ets) . (view heEventType)
+-- | Next activity in workflow to run.
+--
+next :: MonadAmazonDecision c m => Maybe Text -> Task -> m Decision
+next input t = do
+  uid <- liftIO $ toText <$> nextRandom
+  traceInfo "next" [ "uid" .= uid, "task" .= t ]
+  return $ scheduleWork uid (t ^. tName) (t ^. tVersion) (t ^. tQueue) input
 
-schedule :: MonadCtx c m => Maybe Text -> Maybe Task -> m [Decision]
-schedule = undefined
+-- | Failed activity, stop the workflow.
+--
+failed :: MonadAmazonDecision c m => m Decision
+failed = do
+  traceInfo "failed" mempty
+  return failWork
 
-start :: MonadCtx c m => Plan -> HistoryEvent -> m [Decision]
-start plan he = do
+-- | Completed activity, start the next activity.
+--
+completed :: MonadAmazonDecision c m => HistoryEvent -> m Decision
+completed he = do
+  traceInfo "completed" mempty
+  hes <- view adcEvents
+  (input, name) <- maybeThrowIO "No Completed Information" $ do
+    atcea <- he ^. heActivityTaskCompletedEventAttributes
+    he'   <- flip find hes $ (== atcea ^. atceaScheduledEventId) . view heEventId
+    name  <- view atName . view atseaActivityType <$> he' ^. heActivityTaskScheduledEventAttributes
+    return (atcea ^. atceaResult, name)
+  p <- view adcPlan
+  maybe (end input) (next input) $
+    join $ fmap headMay $ tailMay $ flip dropWhile (p ^. pTasks) $ (/= name) . view tName
+
+-- | Beginning of workflow, start the first activity.
+--
+begin :: MonadAmazonDecision c m => HistoryEvent -> m Decision
+begin he = do
+  traceInfo "begin" mempty
   input <- maybeThrowIO "No Start Information" $
     view weseaInput <$> he ^. heWorkflowExecutionStartedEventAttributes
-  schedule input $ listToMaybe (plan ^. pTasks)
+  p <- view adcPlan
+  maybe (end input) (next input) $ headMay (p ^. pTasks)
 
-completed he = undefined
-
-failed he = undefined
-
-select :: MonadCtx c m => Plan -> [HistoryEvent] -> m [Decision]
-select plan hes = do
-  he <- maybeThrowIO "No Next Event" $ nextEvent hes
-          [ WorkflowExecutionStarted
-          , ActivityTaskCompleted
-          , ActivityTaskFailed
-          ]
-  case he ^. heEventType of
-    WorkflowExecutionStarted -> start plan he
-    ActivityTaskCompleted    -> completed he
-    ActivityTaskFailed       -> failed he
-    _et                      -> liftIO $ throwIO $ userError "Unknown Select Event"
+-- | Schedule workflow based on historical events.
+--
+schedule :: MonadAmazonDecision c m => m Decision
+schedule = do
+  traceInfo "schedule" mempty
+  hes <- view adcEvents
+  foldM f Nothing hes >>=
+    maybeThrowIO "No Select Information"
+  where
+    f d he =
+      case he ^. heEventType of
+        WorkflowExecutionStarted -> Just <$> begin he
+        ActivityTaskCompleted    -> Just <$> completed he
+        ActivityTaskFailed       -> Just <$> failed
+        _et                      -> return d
 
 -- | Decider logic - poll for decisions, make decisions.
 --
 decide :: MonadConf c m => Plan -> m ()
-decide plan =
+decide p =
   preConfCtx [ "label" .= LabelDecide ] $
     runAmazonCtx $
-      runAmazonWorkCtx (plan ^. pStart ^. ptQueue) $ do
+      runAmazonWorkCtx (p ^. pStart ^. tQueue) $ do
         traceInfo "poll" mempty
         (token, hes) <- pollDecision
-        maybe_ token $ \token' -> do
-          traceInfo "start" mempty
-          decisions <- select plan hes
-          completeDecision token' decisions
-          traceInfo "finish" mempty
+        maybe_ token $ \token' ->
+          runAmazonDecisionCtx p hes $ do
+            traceInfo "start" mempty
+            schedule >>=
+              completeDecision token'
+            traceInfo "finish" mempty
 
 -- | Run decider from main with config file.
 --
